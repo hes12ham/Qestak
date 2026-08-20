@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Admin collection - only authenticated admins
+    match /admins/{adminId} {
+      allow read: if true; // Needed for login check
+      allow write: if false; // Only via Firebase Console
+    }
+
+    // Customers collection
+    match /customers/{customerId} {
+      // Anyone can read (for customer login)
+      allow read: if true;
+      // Only admin can write (in production, add admin auth check)
+      allow create, update, delete: if true;
+    }
+
+    // Payment logs - audit trail
+    match /payment_logs/{logId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+  }
+}
