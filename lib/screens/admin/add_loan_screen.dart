@@ -41,47 +41,80 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
     if (!_autoCalc) return;
     final a = double.tryParse(_amountC.text) ?? 0;
     final c = int.tryParse(_countC.text) ?? 0;
-    if (a > 0 && c > 0) _installmentC.text = (a / c).toStringAsFixed(2);
+    if (a > 0 && c > 0) {
+      _installmentC.text = (a / c).toStringAsFixed(2);
+    }
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Extra validation
+    final amount = double.tryParse(_amountC.text);
+    final count = int.tryParse(_countC.text);
+    final installment = double.tryParse(_installmentC.text);
+
+    if (amount == null || amount <= 0 || count == null || count <= 0) {
+      _showError('تأكد من إدخال المبلغ وعدد الأقساط بشكل صحيح');
+      return;
+    }
+
+    final effectiveInstallment = installment ?? (amount / count);
+
     setState(() => _isLoading = true);
 
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final admin = auth.currentAdmin!;
-    final l10n = AppLocalizations.of(context);
+    try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final admin = auth.currentAdmin!;
 
-    await FirestoreService.addLoan(
-      adminId: admin.id,
-      adminName: admin.displayName,
-      adminPhone: admin.phone,
-      customerName: _nameC.text.trim(),
-      customerPhone: _phoneC.text.trim(),
-      customerNationalId: _nidC.text.trim(),
-      loanAmount: double.parse(_amountC.text),
-      installmentValue: double.parse(_installmentC.text),
-      totalInstallments: int.parse(_countC.text),
-      startDate: _startDate,
-      notes: _notesC.text.trim().isNotEmpty ? _notesC.text.trim() : null,
-    );
-
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      Provider.of<LoanProvider>(context, listen: false).loadLoans(admin.id);
-      NotificationService.notifyLoanAdded(
+      await FirestoreService.addLoan(
+        adminId: admin.id,
+        adminName: admin.displayName,
+        adminPhone: admin.phone,
         customerName: _nameC.text.trim(),
-        amount: double.parse(_amountC.text),
-        currency: l10n.translate('currency'),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(l10n.translate('loanSaved')),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-      ));
-      Navigator.pop(context);
+        customerPhone: _phoneC.text.trim(),
+        customerNationalId: _nidC.text.trim(),
+        loanAmount: amount,
+        installmentValue: effectiveInstallment,
+        totalInstallments: count,
+        startDate: _startDate,
+        notes: _notesC.text.trim().isNotEmpty ? _notesC.text.trim() : null,
+      ).timeout(const Duration(seconds: 15));
+
+      if (mounted) {
+        Provider.of<LoanProvider>(context, listen: false).loadLoans(admin.id);
+        try {
+          NotificationService.notifyLoanAdded(
+            customerName: _nameC.text.trim(),
+            amount: amount,
+            currency: AppLocalizations.of(context).translate('currency'),
+          );
+        } catch (_) {}
+
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AppLocalizations.of(context).translate('loanSaved')),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+        ));
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint('❌ addLoan error: $e');
+      if (mounted) {
+        _showError(AppLocalizations.of(context).translate('firebaseError'));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: AppColors.danger,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ));
   }
 
   @override
@@ -121,7 +154,6 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
                   keyboard: TextInputType.number,
                   onChanged: (_) => _calcInstallment()),
 
-              // Auto calc toggle
               SwitchListTile(
                 value: _autoCalc,
                 onChanged: (v) => setState(() => _autoCalc = v),
@@ -134,9 +166,9 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
               _field(_installmentC, l10n.translate('installmentValue'),
                   Icons.monetization_on,
                   keyboard: TextInputType.number,
-                  enabled: !_autoCalc),
+                  enabled: !_autoCalc,
+                  isRequired: !_autoCalc),
 
-              // Date
               InkWell(
                 onTap: () async {
                   final d = await showDatePicker(context: context,
@@ -169,7 +201,6 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
                 ),
               ),
 
-              // Notes
               TextFormField(
                 controller: _notesC,
                 decoration: InputDecoration(
@@ -205,6 +236,7 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
     TextInputType? keyboard,
     List<TextInputFormatter>? formatters,
     bool enabled = true,
+    bool isRequired = true,
     Function(String)? onChanged,
   }) {
     return Padding(
@@ -219,11 +251,10 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
         inputFormatters: formatters,
         enabled: enabled,
         onChanged: onChanged,
-        validator: (v) =>
-            (v?.trim().isEmpty ?? true) ? l10n.translate('required') : null,
+        validator: isRequired
+            ? (v) => (v?.trim().isEmpty ?? true) ? AppLocalizations.of(context).translate('required') : null
+            : null,
       ),
     );
   }
-
-  AppLocalizations get l10n => AppLocalizations.of(context);
 }
