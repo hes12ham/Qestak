@@ -9,6 +9,10 @@ build/
 pubspec.lock
 android/local.properties
 android/.gradle/
+android/.kotlin/
 android/app/google-services.json
+android/hs_err_pid*.log
+android/replay_pid*.log
 *.jks
 *.keystore
+*.log
