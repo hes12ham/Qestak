@@ -53,7 +53,7 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: AppColors.surface,
         elevation: 2,
         shadowColor: AppColors.cardShadow,

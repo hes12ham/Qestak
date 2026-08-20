@@ -20,7 +20,7 @@ if (flutterVersionName == null) { flutterVersionName = "2.0.0" }
 android {
     namespace "com.qestak.app"
     compileSdk 34
-
+    ndkVersion "28.2.13676358"
     compileOptions {
         coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_17
@@ -33,7 +33,7 @@ android {
 
     defaultConfig {
         applicationId "com.qestak.app"
-        minSdk 23
+        minSdkVersion flutter.minSdkVersion
         targetSdk 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
