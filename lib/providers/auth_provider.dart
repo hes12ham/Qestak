@@ -22,13 +22,11 @@ class AuthProvider extends ChangeNotifier {
   String get customerName => _customerName;
   String? get error => _error;
 
-  /// Group customer loans by creditor (admin)
   Map<String, List<Loan>> get loansByCreditor {
     final map = <String, List<Loan>>{};
     for (final loan in _customerLoans) {
-      final key = loan.adminId;
-      map.putIfAbsent(key, () => []);
-      map[key]!.add(loan);
+      map.putIfAbsent(loan.adminId, () => []);
+      map[loan.adminId]!.add(loan);
     }
     return map;
   }
@@ -47,7 +45,7 @@ class AuthProvider extends ChangeNotifier {
       final admin = await FirestoreService.registerAdmin(
         name: name, email: email, password: password,
         phone: phone, businessName: businessName,
-      );
+      ).timeout(const Duration(seconds: 15));
       if (admin == null) {
         _error = 'emailTaken';
         notifyListeners();
@@ -58,8 +56,8 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = 'error';
-      debugPrint('registerAdmin error: $e');
+      _error = 'firebaseError';
+      debugPrint('❌ registerAdmin: $e');
       notifyListeners();
       return false;
     }
@@ -68,7 +66,8 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> loginAsAdmin(String email, String password) async {
     _error = null;
     try {
-      final admin = await FirestoreService.loginAdmin(email, password);
+      final admin = await FirestoreService.loginAdmin(email, password)
+          .timeout(const Duration(seconds: 15));
       if (admin == null) {
         _error = 'invalidCredentials';
         notifyListeners();
@@ -79,8 +78,8 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = 'error';
-      debugPrint('loginAdmin error: $e');
+      _error = 'firebaseError';
+      debugPrint('❌ loginAdmin: $e');
       notifyListeners();
       return false;
     }
@@ -97,16 +96,23 @@ class AuthProvider extends ChangeNotifier {
     try {
       final ok = await FirestoreService.registerCustomer(
         name: name, phone: phone, nationalId: nationalId,
-      );
+      ).timeout(const Duration(seconds: 15));
       if (!ok) {
         _error = 'accountExists';
         notifyListeners();
         return false;
       }
-      return loginAsCustomer(phone, nationalId, name: name);
+      // Auto-login after register
+      _customerName = name;
+      _customerPhone = phone;
+      _customerNationalId = nationalId;
+      _customerLoans = [];
+      _role = UserRole.customer;
+      notifyListeners();
+      return true;
     } catch (e) {
-      _error = 'error';
-      debugPrint('registerCustomer error: $e');
+      _error = 'firebaseError';
+      debugPrint('❌ registerCustomer: $e');
       notifyListeners();
       return false;
     }
@@ -116,21 +122,26 @@ class AuthProvider extends ChangeNotifier {
       {String? name}) async {
     _error = null;
     try {
-      final exists = await FirestoreService.customerExists(phone, nationalId);
+      final exists = await FirestoreService.customerExists(phone, nationalId)
+          .timeout(const Duration(seconds: 15));
       if (!exists) {
         _error = 'invalidCredentials';
         notifyListeners();
         return false;
       }
 
-      final loans = await FirestoreService.getLoansForCustomer(phone, nationalId);
+      final loans = await FirestoreService.getLoansForCustomer(phone, nationalId)
+          .timeout(const Duration(seconds: 15));
       _customerLoans = loans;
       _customerPhone = phone;
       _customerNationalId = nationalId;
       if (name != null) _customerName = name;
       if (_customerName.isEmpty) {
-        final custName = await FirestoreService.getCustomerName(phone, nationalId);
-        if (custName != null) _customerName = custName;
+        try {
+          final custName = await FirestoreService.getCustomerName(phone, nationalId)
+              .timeout(const Duration(seconds: 10));
+          if (custName != null) _customerName = custName;
+        } catch (_) {}
       }
       if (loans.isNotEmpty && _customerName.isEmpty) {
         _customerName = loans.first.customerName;
@@ -139,23 +150,22 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = 'error';
-      debugPrint('loginCustomer error: $e');
+      _error = 'firebaseError';
+      debugPrint('❌ loginCustomer: $e');
       notifyListeners();
       return false;
     }
   }
 
-  /// Refresh customer's loans
   Future<void> refreshCustomerLoans() async {
     if (_role != UserRole.customer) return;
     try {
       _customerLoans = await FirestoreService.getLoansForCustomer(
         _customerPhone, _customerNationalId,
-      );
+      ).timeout(const Duration(seconds: 15));
       notifyListeners();
     } catch (e) {
-      debugPrint('refreshLoans error: $e');
+      debugPrint('❌ refreshLoans: $e');
     }
   }
 
