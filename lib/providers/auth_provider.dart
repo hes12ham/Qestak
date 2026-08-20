@@ -102,11 +102,16 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return false;
       }
-      // Auto-login after register
       _customerName = name;
       _customerPhone = phone;
       _customerNationalId = nationalId;
-      _customerLoans = [];
+      // Fetch any existing loans for this customer
+      try {
+        _customerLoans = await FirestoreService.getLoansForCustomer(phone, nationalId)
+            .timeout(const Duration(seconds: 10));
+      } catch (_) {
+        _customerLoans = [];
+      }
       _role = UserRole.customer;
       notifyListeners();
       return true;
@@ -118,20 +123,41 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Customer login:
+  /// 1. Check if registered in customers collection
+  /// 2. If not, check if loans exist with this phone+nationalId
+  /// 3. If loans found, auto-register and login
+  /// 4. If nothing found, reject
   Future<bool> loginAsCustomer(String phone, String nationalId,
       {String? name}) async {
     _error = null;
     try {
-      final exists = await FirestoreService.customerExists(phone, nationalId)
+      // Step 1: Try to find loans for this customer
+      final loans = await FirestoreService.getLoansForCustomer(phone, nationalId)
           .timeout(const Duration(seconds: 15));
-      if (!exists) {
-        _error = 'invalidCredentials';
+
+      // Step 2: Check if customer record exists
+      final exists = await FirestoreService.customerExists(phone, nationalId)
+          .timeout(const Duration(seconds: 10));
+
+      // Step 3: If loans exist but no customer record → auto-register
+      if (!exists && loans.isNotEmpty) {
+        final customerName = name ?? loans.first.customerName;
+        await FirestoreService.registerCustomer(
+          name: customerName,
+          phone: phone,
+          nationalId: nationalId,
+        ).timeout(const Duration(seconds: 10));
+      }
+
+      // Step 4: If no loans AND no customer record → reject
+      if (!exists && loans.isEmpty) {
+        _error = 'noLoansFound';
         notifyListeners();
         return false;
       }
 
-      final loans = await FirestoreService.getLoansForCustomer(phone, nationalId)
-          .timeout(const Duration(seconds: 15));
+      // Step 5: Login successful
       _customerLoans = loans;
       _customerPhone = phone;
       _customerNationalId = nationalId;
