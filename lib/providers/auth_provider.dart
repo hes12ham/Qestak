@@ -43,36 +43,47 @@ class AuthProvider extends ChangeNotifier {
     String businessName = '',
   }) async {
     _error = null;
-    final admin = await FirestoreService.registerAdmin(
-      name: name,
-      email: email,
-      password: password,
-      phone: phone,
-      businessName: businessName,
-    );
-    if (admin == null) {
-      _error = 'emailTaken';
+    try {
+      final admin = await FirestoreService.registerAdmin(
+        name: name, email: email, password: password,
+        phone: phone, businessName: businessName,
+      );
+      if (admin == null) {
+        _error = 'emailTaken';
+        notifyListeners();
+        return false;
+      }
+      _currentAdmin = admin;
+      _role = UserRole.admin;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'error';
+      debugPrint('registerAdmin error: $e');
       notifyListeners();
       return false;
     }
-    _currentAdmin = admin;
-    _role = UserRole.admin;
-    notifyListeners();
-    return true;
   }
 
   Future<bool> loginAsAdmin(String email, String password) async {
     _error = null;
-    final admin = await FirestoreService.loginAdmin(email, password);
-    if (admin == null) {
-      _error = 'invalidCredentials';
+    try {
+      final admin = await FirestoreService.loginAdmin(email, password);
+      if (admin == null) {
+        _error = 'invalidCredentials';
+        notifyListeners();
+        return false;
+      }
+      _currentAdmin = admin;
+      _role = UserRole.admin;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'error';
+      debugPrint('loginAdmin error: $e');
       notifyListeners();
       return false;
     }
-    _currentAdmin = admin;
-    _role = UserRole.admin;
-    notifyListeners();
-    return true;
   }
 
   // ── Customer Auth ──
@@ -83,58 +94,69 @@ class AuthProvider extends ChangeNotifier {
     required String nationalId,
   }) async {
     _error = null;
-    final ok = await FirestoreService.registerCustomer(
-      name: name,
-      phone: phone,
-      nationalId: nationalId,
-    );
-    if (!ok) {
-      _error = 'accountExists';
+    try {
+      final ok = await FirestoreService.registerCustomer(
+        name: name, phone: phone, nationalId: nationalId,
+      );
+      if (!ok) {
+        _error = 'accountExists';
+        notifyListeners();
+        return false;
+      }
+      return loginAsCustomer(phone, nationalId, name: name);
+    } catch (e) {
+      _error = 'error';
+      debugPrint('registerCustomer error: $e');
       notifyListeners();
       return false;
     }
-    // Auto-login after registration
-    return loginAsCustomer(phone, nationalId, name: name);
   }
 
   Future<bool> loginAsCustomer(String phone, String nationalId,
       {String? name}) async {
     _error = null;
+    try {
+      final exists = await FirestoreService.customerExists(phone, nationalId);
+      if (!exists) {
+        _error = 'invalidCredentials';
+        notifyListeners();
+        return false;
+      }
 
-    // Verify customer is registered first
-    final exists = await FirestoreService.customerExists(phone, nationalId);
-    if (!exists) {
-      _error = 'invalidCredentials';
+      final loans = await FirestoreService.getLoansForCustomer(phone, nationalId);
+      _customerLoans = loans;
+      _customerPhone = phone;
+      _customerNationalId = nationalId;
+      if (name != null) _customerName = name;
+      if (_customerName.isEmpty) {
+        final custName = await FirestoreService.getCustomerName(phone, nationalId);
+        if (custName != null) _customerName = custName;
+      }
+      if (loans.isNotEmpty && _customerName.isEmpty) {
+        _customerName = loans.first.customerName;
+      }
+      _role = UserRole.customer;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = 'error';
+      debugPrint('loginCustomer error: $e');
       notifyListeners();
       return false;
     }
-
-    final loans = await FirestoreService.getLoansForCustomer(phone, nationalId);
-    _customerLoans = loans;
-    _customerPhone = phone;
-    _customerNationalId = nationalId;
-    if (name != null) _customerName = name;
-    if (_customerName.isEmpty) {
-      // Try to get name from customer record
-      final custName = await FirestoreService.getCustomerName(phone, nationalId);
-      if (custName != null) _customerName = custName;
-    }
-    if (loans.isNotEmpty && _customerName.isEmpty) {
-      _customerName = loans.first.customerName;
-    }
-    _role = UserRole.customer;
-    notifyListeners();
-    return true;
   }
 
   /// Refresh customer's loans
   Future<void> refreshCustomerLoans() async {
     if (_role != UserRole.customer) return;
-    _customerLoans = await FirestoreService.getLoansForCustomer(
-      _customerPhone,
-      _customerNationalId,
-    );
-    notifyListeners();
+    try {
+      _customerLoans = await FirestoreService.getLoansForCustomer(
+        _customerPhone, _customerNationalId,
+      );
+      notifyListeners();
+    } catch (e) {
+      debugPrint('refreshLoans error: $e');
+    }
   }
 
   void logout() {

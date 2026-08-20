@@ -13,8 +13,20 @@ import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  await NotificationService.initialize();
+  
+  // Firebase — يشتغل لو متربط، ولو لا التطبيق يكمل عادي
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase not configured yet: $e');
+  }
+  
+  try {
+    await NotificationService.initialize();
+  } catch (e) {
+    debugPrint('Notifications init skipped: $e');
+  }
+  
   runApp(const QestakApp());
 }
 
