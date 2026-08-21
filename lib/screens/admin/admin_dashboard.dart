@@ -52,7 +52,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 case 'settings': Navigator.pushNamed(context, AppRoutes.settings); break;
                 case 'logout':
                   auth.logout();
-                  Navigator.pushReplacementNamed(context, AppRoutes.roleChoice);
+                  Navigator.pushReplacementNamed(context, AppRoutes.customerLogin);
                   break;
               }
             },

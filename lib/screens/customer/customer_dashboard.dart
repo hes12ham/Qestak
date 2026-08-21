@@ -56,7 +56,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               onPressed: () => locale.toggleLocale()),
           IconButton(icon: const Icon(Icons.logout_rounded), onPressed: () {
             auth.logout();
-            Navigator.pushReplacementNamed(context, AppRoutes.roleChoice);
+            Navigator.pushReplacementNamed(context, AppRoutes.customerLogin);
           }),
         ],
       ),
