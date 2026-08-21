@@ -4,63 +4,45 @@ class Payment {
   final String id;
   final double amount;
   final DateTime date;
-  final String method; // cash, transfer, qr
+  final String method;
   final String? confirmedBy;
   final String? notes;
 
-  Payment({
-    required this.id,
-    required this.amount,
-    required this.date,
-    this.method = 'cash',
-    this.confirmedBy,
-    this.notes,
-  });
+  Payment({required this.id, required this.amount, required this.date,
+    this.method = 'cash', this.confirmedBy, this.notes});
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'amount': amount,
-        'date': Timestamp.fromDate(date),
-        'method': method,
-        'confirmedBy': confirmedBy,
-        'notes': notes,
-      };
+    'id': id, 'amount': amount, 'date': Timestamp.fromDate(date),
+    'method': method, 'confirmedBy': confirmedBy, 'notes': notes,
+  };
 
-  factory Payment.fromMap(Map<String, dynamic> map) => Payment(
-        id: map['id'] ?? '',
-        amount: (map['amount'] ?? 0).toDouble(),
-        date: (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
-        method: map['method'] ?? 'cash',
-        confirmedBy: map['confirmedBy'],
-        notes: map['notes'],
-      );
+  factory Payment.fromMap(Map<String, dynamic> m) => Payment(
+    id: m['id'] ?? '', amount: (m['amount'] ?? 0).toDouble(),
+    date: (m['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    method: m['method'] ?? 'cash', confirmedBy: m['confirmedBy'], notes: m['notes'],
+  );
 }
 
 class Loan {
   final String id;
-
-  // Creditor (admin) info
   final String adminId;
   final String adminName;
   final String adminPhone;
-
-  // Customer info
   final String customerName;
   final String customerPhone;
   final String customerNationalId;
-
-  // Loan details
   final double loanAmount;
   final double installmentValue;
   final int totalInstallments;
   final int paidInstallments;
   final double paidAmount;
-  final DateTime startDate;
+  final DateTime startDate;       // تاريخ البداية (يوم استلام المبلغ)
+  final DateTime firstDueDate;    // تاريخ الاستحقاق (أول قسط)
   final List<DateTime> dueDates;
   final List<Payment> payments;
-  final String status; // active, completed, overdue
+  final String status;
   final String? notes;
-  final String? idImagePath; // local path to ID card image
+  final String? idImagePath;
   final DateTime createdAt;
 
   Loan({
@@ -77,13 +59,15 @@ class Loan {
     this.paidInstallments = 0,
     this.paidAmount = 0,
     required this.startDate,
+    DateTime? firstDueDate,
     this.dueDates = const [],
     this.payments = const [],
     this.status = 'active',
     this.notes,
     this.idImagePath,
     DateTime? createdAt,
-  }) : createdAt = createdAt ?? DateTime.now();
+  }) : firstDueDate = firstDueDate ?? startDate,
+       createdAt = createdAt ?? DateTime.now();
 
   double get remainingAmount => loanAmount - paidAmount;
   double get progressPercentage =>
@@ -92,21 +76,14 @@ class Loan {
   DateTime? get nextDueDate {
     final now = DateTime.now();
     for (int i = 0; i < dueDates.length; i++) {
-      if (i >= paidInstallments && dueDates[i].isAfter(now)) {
-        return dueDates[i];
-      }
+      if (i >= paidInstallments && dueDates[i].isAfter(now)) return dueDates[i];
     }
-    if (paidInstallments < dueDates.length) {
-      return dueDates[paidInstallments];
-    }
+    if (paidInstallments < dueDates.length) return dueDates[paidInstallments];
     return null;
   }
 
   bool get isOverdue {
     if (status == 'completed') return false;
-    final next = nextDueDate;
-    if (next != null && next.isBefore(DateTime.now())) return true;
-    // Check if any unpaid installment is past due
     for (int i = paidInstallments; i < dueDates.length; i++) {
       if (dueDates[i].isBefore(DateTime.now())) return true;
     }
@@ -124,102 +101,70 @@ class Loan {
   }
 
   Map<String, dynamic> toMap() => {
-        'adminId': adminId,
-        'adminName': adminName,
-        'adminPhone': adminPhone,
-        'customerName': customerName,
-        'customerPhone': customerPhone,
-        'customerNationalId': customerNationalId,
-        'loanAmount': loanAmount,
-        'installmentValue': installmentValue,
-        'totalInstallments': totalInstallments,
-        'paidInstallments': paidInstallments,
-        'paidAmount': paidAmount,
-        'startDate': Timestamp.fromDate(startDate),
-        'dueDates': dueDates.map((d) => Timestamp.fromDate(d)).toList(),
-        'payments': payments.map((p) => p.toMap()).toList(),
-        'status': status,
-        'notes': notes,
-        'idImagePath': idImagePath,
-        'createdAt': Timestamp.fromDate(createdAt),
-        'customerPhoneSearch': customerPhone.replaceAll(RegExp(r'[^\d]'), ''),
-        'customerNationalIdSearch':
-            customerNationalId.replaceAll(RegExp(r'[^\d]'), ''),
-      };
+    'adminId': adminId, 'adminName': adminName, 'adminPhone': adminPhone,
+    'customerName': customerName, 'customerPhone': customerPhone,
+    'customerNationalId': customerNationalId,
+    'loanAmount': loanAmount, 'installmentValue': installmentValue,
+    'totalInstallments': totalInstallments, 'paidInstallments': paidInstallments,
+    'paidAmount': paidAmount,
+    'startDate': Timestamp.fromDate(startDate),
+    'firstDueDate': Timestamp.fromDate(firstDueDate),
+    'dueDates': dueDates.map((d) => Timestamp.fromDate(d)).toList(),
+    'payments': payments.map((p) => p.toMap()).toList(),
+    'status': status, 'notes': notes, 'idImagePath': idImagePath,
+    'createdAt': Timestamp.fromDate(createdAt),
+    'customerPhoneSearch': customerPhone.replaceAll(RegExp(r'[^\d]'), ''),
+    'customerNationalIdSearch': customerNationalId.replaceAll(RegExp(r'[^\d]'), ''),
+  };
 
   factory Loan.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final d = doc.data() as Map<String, dynamic>;
+    final start = (d['startDate'] as Timestamp?)?.toDate() ?? DateTime.now();
     return Loan(
       id: doc.id,
-      adminId: data['adminId'] ?? '',
-      adminName: data['adminName'] ?? '',
-      adminPhone: data['adminPhone'] ?? '',
-      customerName: data['customerName'] ?? '',
-      customerPhone: data['customerPhone'] ?? '',
-      customerNationalId: data['customerNationalId'] ?? '',
-      loanAmount: (data['loanAmount'] ?? 0).toDouble(),
-      installmentValue: (data['installmentValue'] ?? 0).toDouble(),
-      totalInstallments: data['totalInstallments'] ?? 0,
-      paidInstallments: data['paidInstallments'] ?? 0,
-      paidAmount: (data['paidAmount'] ?? 0).toDouble(),
-      startDate:
-          (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      dueDates: (data['dueDates'] as List<dynamic>?)
-              ?.map((d) => (d as Timestamp).toDate())
-              .toList() ??
-          [],
-      payments: (data['payments'] as List<dynamic>?)
-              ?.map((p) => Payment.fromMap(p as Map<String, dynamic>))
-              .toList() ??
-          [],
-      status: data['status'] ?? 'active',
-      notes: data['notes'],
-      idImagePath: data['idImagePath'],
-      createdAt:
-          (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      adminId: d['adminId'] ?? '', adminName: d['adminName'] ?? '',
+      adminPhone: d['adminPhone'] ?? '',
+      customerName: d['customerName'] ?? '', customerPhone: d['customerPhone'] ?? '',
+      customerNationalId: d['customerNationalId'] ?? '',
+      loanAmount: (d['loanAmount'] ?? 0).toDouble(),
+      installmentValue: (d['installmentValue'] ?? 0).toDouble(),
+      totalInstallments: d['totalInstallments'] ?? 0,
+      paidInstallments: d['paidInstallments'] ?? 0,
+      paidAmount: (d['paidAmount'] ?? 0).toDouble(),
+      startDate: start,
+      firstDueDate: (d['firstDueDate'] as Timestamp?)?.toDate() ?? start,
+      dueDates: (d['dueDates'] as List<dynamic>?)
+          ?.map((x) => (x as Timestamp).toDate()).toList() ?? [],
+      payments: (d['payments'] as List<dynamic>?)
+          ?.map((p) => Payment.fromMap(p as Map<String, dynamic>)).toList() ?? [],
+      status: d['status'] ?? 'active', notes: d['notes'],
+      idImagePath: d['idImagePath'],
+      createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
   Loan copyWith({
-    String? id,
-    String? adminId,
-    String? adminName,
-    String? adminPhone,
-    String? customerName,
-    String? customerPhone,
-    String? customerNationalId,
-    double? loanAmount,
-    double? installmentValue,
-    int? totalInstallments,
-    int? paidInstallments,
-    double? paidAmount,
-    DateTime? startDate,
-    List<DateTime>? dueDates,
-    List<Payment>? payments,
-    String? status,
-    String? notes,
-    String? idImagePath,
-  }) {
-    return Loan(
-      id: id ?? this.id,
-      adminId: adminId ?? this.adminId,
-      adminName: adminName ?? this.adminName,
-      adminPhone: adminPhone ?? this.adminPhone,
-      customerName: customerName ?? this.customerName,
-      customerPhone: customerPhone ?? this.customerPhone,
-      customerNationalId: customerNationalId ?? this.customerNationalId,
-      loanAmount: loanAmount ?? this.loanAmount,
-      installmentValue: installmentValue ?? this.installmentValue,
-      totalInstallments: totalInstallments ?? this.totalInstallments,
-      paidInstallments: paidInstallments ?? this.paidInstallments,
-      paidAmount: paidAmount ?? this.paidAmount,
-      startDate: startDate ?? this.startDate,
-      dueDates: dueDates ?? this.dueDates,
-      payments: payments ?? this.payments,
-      status: status ?? this.status,
-      notes: notes ?? this.notes,
-      idImagePath: idImagePath ?? this.idImagePath,
-      createdAt: createdAt,
-    );
-  }
+    String? id, String? adminId, String? adminName, String? adminPhone,
+    String? customerName, String? customerPhone, String? customerNationalId,
+    double? loanAmount, double? installmentValue, int? totalInstallments,
+    int? paidInstallments, double? paidAmount, DateTime? startDate,
+    DateTime? firstDueDate, List<DateTime>? dueDates, List<Payment>? payments,
+    String? status, String? notes, String? idImagePath,
+  }) => Loan(
+    id: id ?? this.id, adminId: adminId ?? this.adminId,
+    adminName: adminName ?? this.adminName, adminPhone: adminPhone ?? this.adminPhone,
+    customerName: customerName ?? this.customerName,
+    customerPhone: customerPhone ?? this.customerPhone,
+    customerNationalId: customerNationalId ?? this.customerNationalId,
+    loanAmount: loanAmount ?? this.loanAmount,
+    installmentValue: installmentValue ?? this.installmentValue,
+    totalInstallments: totalInstallments ?? this.totalInstallments,
+    paidInstallments: paidInstallments ?? this.paidInstallments,
+    paidAmount: paidAmount ?? this.paidAmount,
+    startDate: startDate ?? this.startDate,
+    firstDueDate: firstDueDate ?? this.firstDueDate,
+    dueDates: dueDates ?? this.dueDates, payments: payments ?? this.payments,
+    status: status ?? this.status, notes: notes ?? this.notes,
+    idImagePath: idImagePath ?? this.idImagePath, createdAt: createdAt,
+  );
 }

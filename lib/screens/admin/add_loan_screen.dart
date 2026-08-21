@@ -30,15 +30,17 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
   final _notesC = TextEditingController();
 
   DateTime _startDate = DateTime.now();
+  DateTime _firstDueDate = DateTime.now().add(const Duration(days: 30));
   bool _isLoading = false;
   bool _autoCalc = true;
   File? _idImage;
+  final _passwordC = TextEditingController();
 
   @override
   void dispose() {
     _nameC.dispose(); _phoneC.dispose(); _nidC.dispose();
     _amountC.dispose(); _installmentC.dispose();
-    _countC.dispose(); _notesC.dispose();
+    _countC.dispose(); _notesC.dispose(); _passwordC.dispose();
     super.dispose();
   }
 
@@ -148,13 +150,15 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
     final cleanPhone = phone.replaceAll(RegExp(r'[^\d]'), '');
     final whatsappPhone = cleanPhone.startsWith('0') ? '2${cleanPhone}' : cleanPhone;
 
+    final password = _passwordC.text.trim();
+    final passwordLine = password.isNotEmpty ? '\n🔑 كلمة السر: $password' : '';
+
     final message = '''مرحباً $customerName 👋
 
 تم تسجيل قسط باسمك في *$adminName*
 
 للدخول على تطبيق *قسطك* ومتابعة أقساطك:
-📞 رقم التليفون: $phone
-🆔 الرقم القومي: ${_nidC.text.trim()}
+📞 رقم التليفون: $phone$passwordLine
 
 حمّل التطبيق وسجّل دخولك بالبيانات دي 📱''';
 
@@ -202,8 +206,10 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
         installmentValue: installment,
         totalInstallments: count,
         startDate: _startDate,
+        firstDueDate: _firstDueDate,
         notes: _notesC.text.trim().isNotEmpty ? _notesC.text.trim() : null,
         idImagePath: imagePath,
+        customerPassword: _passwordC.text.trim().isNotEmpty ? _passwordC.text.trim() : null,
       ).timeout(const Duration(seconds: 15));
 
       if (mounted) {
@@ -391,6 +397,7 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
               _field(_installmentC, l10n.translate('installmentValue'),
                   Icons.monetization_on, keyboard: TextInputType.number,
                   enabled: !_autoCalc, isRequired: !_autoCalc),
+              // تاريخ البداية
               InkWell(
                 onTap: () async {
                   final d = await showDatePicker(context: context,
@@ -415,6 +422,39 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
                   ]),
                 ),
               ),
+
+              // تاريخ الاستحقاق (أول قسط)
+              InkWell(
+                onTap: () async {
+                  final d = await showDatePicker(context: context,
+                      initialDate: _firstDueDate, firstDate: DateTime(2020),
+                      lastDate: DateTime(2030));
+                  if (d != null) setState(() => _firstDueDate = d);
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.accent.withOpacity(0.4), width: 1.5),
+                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.accent.withOpacity(0.04)),
+                  child: Row(children: [
+                    Icon(Icons.event_available, size: 18, color: AppColors.accent),
+                    const SizedBox(width: 10),
+                    Text(l10n.translate('firstDueDate'),
+                        style: TextStyle(fontSize: 13, color: AppColors.accent,
+                            fontWeight: FontWeight.w600)),
+                    const Spacer(),
+                    Text(DateFormat('yyyy/MM/dd').format(_firstDueDate),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+                            color: AppColors.accent)),
+                  ]),
+                ),
+              ),
+
+              // كلمة سر العميل
+              _field(_passwordC, l10n.translate('customerPassword'), Icons.lock_outline,
+                  isRequired: false),
               TextFormField(
                 controller: _notesC,
                 decoration: InputDecoration(

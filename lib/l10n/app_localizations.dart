@@ -89,13 +89,15 @@ class AppLocalizations {
 
     // Loan Details
     'loanDetails': 'تفاصيل القسط',
-    'loanAmount': 'مبلغ القرض',
+    'loanAmount': 'إجمالي الأقساط',
     'installmentValue': 'قيمة القسط',
     'paidAmount': 'المبلغ المدفوع',
     'remainingAmount': 'المبلغ المتبقي',
     'totalInstallments': 'عدد الأقساط',
     'paidInstallments': 'الأقساط المدفوعة',
     'startDate': 'تاريخ البداية',
+    'firstDueDate': 'تاريخ أول قسط',
+    'customerPassword': 'كلمة سر العميل',
     'nextDueDate': 'القسط القادم',
     'daysUntilDue': 'يوم للاستحقاق',
     'daysOverdue': 'يوم تأخير',
@@ -124,10 +126,10 @@ class AppLocalizations {
     // Admin Dashboard
     'adminDashboard': 'لوحة الإدارة',
     'totalCustomers': 'إجمالي العملاء',
-    'totalLoans': 'إجمالي القروض',
-    'activeLoans': 'قروض نشطة',
-    'overdueLoans': 'قروض متأخرة',
-    'completedLoans': 'قروض مكتملة',
+    'totalLoans': 'إجمالي الأقساط',
+    'activeLoans': 'أقساط نشطة',
+    'overdueLoans': 'أقساط متأخرة',
+    'completedLoans': 'أقساط مكتملة',
     'searchByNameOrPhone': 'بحث بالاسم أو التليفون...',
 
     // Admin - Add/Edit
@@ -177,7 +179,7 @@ class AppLocalizations {
     'totalAmount': 'الإجمالي',
     'totalCollected': 'المُحصّل',
     'collectionRate': 'نسبة التحصيل',
-    'customerDistribution': 'توزيع القروض',
+    'customerDistribution': 'توزيع الأقساط',
 
     // QR
     'qrCode': 'رمز QR',
@@ -264,13 +266,15 @@ class AppLocalizations {
 
     // Loan Details
     'loanDetails': 'Loan Details',
-    'loanAmount': 'Loan Amount',
+    'loanAmount': 'Total Installments Amount',
     'installmentValue': 'Installment Value',
     'paidAmount': 'Paid Amount',
     'remainingAmount': 'Remaining Amount',
     'totalInstallments': 'Total Installments',
     'paidInstallments': 'Paid Installments',
     'startDate': 'Start Date',
+    'firstDueDate': 'First Due Date',
+    'customerPassword': 'Customer Password',
     'nextDueDate': 'Next Due Date',
     'daysUntilDue': 'days until due',
     'daysOverdue': 'days overdue',
@@ -299,10 +303,10 @@ class AppLocalizations {
     // Admin Dashboard
     'adminDashboard': 'Admin Dashboard',
     'totalCustomers': 'Total Customers',
-    'totalLoans': 'Total Loans',
-    'activeLoans': 'Active Loans',
-    'overdueLoans': 'Overdue Loans',
-    'completedLoans': 'Completed Loans',
+    'totalLoans': 'Total Installments',
+    'activeLoans': 'Active Installments',
+    'overdueLoans': 'Overdue Installments',
+    'completedLoans': 'Completed Installments',
     'searchByNameOrPhone': 'Search by name or phone...',
 
     // Admin - Add/Edit
@@ -352,7 +356,7 @@ class AppLocalizations {
     'totalAmount': 'Total Amount',
     'totalCollected': 'Total Collected',
     'collectionRate': 'Collection Rate',
-    'customerDistribution': 'Loan Distribution',
+    'customerDistribution': 'Installment Distribution',
 
     // QR
     'qrCode': 'QR Code',
