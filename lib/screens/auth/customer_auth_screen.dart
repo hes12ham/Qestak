@@ -5,6 +5,7 @@ import '../../config/theme.dart';
 import '../../config/routes.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/locale_provider.dart';
 
 class CustomerAuthScreen extends StatefulWidget {
   const CustomerAuthScreen({super.key});
@@ -67,108 +68,152 @@ class _CustomerAuthScreenState extends State<CustomerAuthScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final locale = Provider.of<LocaleProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.translate(
-            _isLogin ? 'customerLogin' : 'customerRegister')),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo
-              Center(
-                child: Container(
-                  width: 72, height: 72,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Language toggle top-right
+                Align(
+                  alignment: AlignmentDirectional.topEnd,
+                  child: TextButton.icon(
+                    onPressed: () => locale.toggleLocale(),
+                    icon: const Icon(Icons.language, size: 18),
+                    label: Text(locale.isArabic ? 'EN' : 'عربي',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                   ),
-                  child: const Icon(Icons.person_rounded,
-                      color: AppColors.primary, size: 36),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Center(child: Text(l10n.translate('loginSubtitle'),
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 14))),
-              const SizedBox(height: 28),
+                const SizedBox(height: 16),
 
-              // Name (only for register)
-              if (!_isLogin) ...[
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: l10n.translate('fullName'),
-                    prefixIcon: const Icon(Icons.person_outline),
+                // Logo
+                Center(
+                  child: Container(
+                    width: 80, height: 80,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: const Icon(Icons.account_balance_wallet_rounded,
+                        color: Colors.white, size: 40),
                   ),
+                ),
+                const SizedBox(height: 14),
+                Center(child: Text(l10n.translate('appName'),
+                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800,
+                        color: AppColors.primary))),
+                const SizedBox(height: 6),
+                Center(child: Text(l10n.translate('loginSubtitle'),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13))),
+                const SizedBox(height: 32),
+
+                // Name (only for register)
+                if (!_isLogin) ...[
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: l10n.translate('fullName'),
+                      prefixIcon: const Icon(Icons.person_outline),
+                    ),
+                    validator: (v) =>
+                        (v?.trim().isEmpty ?? true) ? l10n.translate('required') : null,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Phone
+                TextFormField(
+                  controller: _phoneController,
+                  decoration: InputDecoration(
+                    labelText: l10n.translate('phone'),
+                    prefixIcon: const Icon(Icons.phone_rounded),
+                  ),
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   validator: (v) =>
                       (v?.trim().isEmpty ?? true) ? l10n.translate('required') : null,
                 ),
                 const SizedBox(height: 12),
-              ],
 
-              // Phone
-              TextFormField(
-                controller: _phoneController,
-                decoration: InputDecoration(
-                  labelText: l10n.translate('phone'),
-                  prefixIcon: const Icon(Icons.phone_rounded),
-                ),
-                keyboardType: TextInputType.phone,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: (v) =>
-                    (v?.trim().isEmpty ?? true) ? l10n.translate('required') : null,
-              ),
-              const SizedBox(height: 12),
-
-              // National ID
-              TextFormField(
-                controller: _nidController,
-                decoration: InputDecoration(
-                  labelText: l10n.translate('nationalId'),
-                  prefixIcon: const Icon(Icons.badge_rounded),
-                ),
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: (v) =>
-                    (v?.trim().isEmpty ?? true) ? l10n.translate('required') : null,
-              ),
-              const SizedBox(height: 24),
-
-              // Submit
-              SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submit,
-                  child: _isLoading
-                      ? const SizedBox(width: 22, height: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : Text(l10n.translate(_isLogin ? 'login' : 'register'),
-                          style: const TextStyle(fontSize: 16,
-                              fontWeight: FontWeight.w700)),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Toggle login/register
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(l10n.translate(_isLogin ? 'noAccount' : 'haveAccount'),
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  TextButton(
-                    onPressed: () => setState(() => _isLogin = !_isLogin),
-                    child: Text(l10n.translate(_isLogin ? 'register' : 'login'),
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                // National ID
+                TextFormField(
+                  controller: _nidController,
+                  decoration: InputDecoration(
+                    labelText: l10n.translate('nationalId'),
+                    prefixIcon: const Icon(Icons.badge_rounded),
                   ),
-                ],
-              ),
-            ],
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  validator: (v) =>
+                      (v?.trim().isEmpty ?? true) ? l10n.translate('required') : null,
+                ),
+                const SizedBox(height: 24),
+
+                // Submit
+                SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _submit,
+                    child: _isLoading
+                        ? const SizedBox(width: 22, height: 22,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : Text(l10n.translate(_isLogin ? 'login' : 'register'),
+                            style: const TextStyle(fontSize: 16,
+                                fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Toggle login/register
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(l10n.translate(_isLogin ? 'noAccount' : 'haveAccount'),
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                    TextButton(
+                      onPressed: () => setState(() => _isLogin = !_isLogin),
+                      child: Text(l10n.translate(_isLogin ? 'register' : 'login'),
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 32),
+
+                // ── Admin link (small, at bottom) ──
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.accent.withOpacity(0.15)),
+                    ),
+                    child: InkWell(
+                      onTap: () => Navigator.pushNamed(context, AppRoutes.adminLogin),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.admin_panel_settings_rounded,
+                              color: AppColors.accent, size: 18),
+                          const SizedBox(width: 8),
+                          Text(l10n.translate('enterAsAdmin'),
+                              style: TextStyle(fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.accent)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

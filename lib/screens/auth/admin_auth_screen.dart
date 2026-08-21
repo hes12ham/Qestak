@@ -189,6 +189,20 @@ class _AdminAuthScreenState extends State<AdminAuthScreen> {
                   ),
                 ],
               ),
+
+              const SizedBox(height: 20),
+
+              // Back to customer login
+              Center(
+                child: TextButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.arrow_back_rounded,
+                      color: AppColors.textHint, size: 16),
+                  label: Text(l10n.translate('enterAsCustomer'),
+                      style: TextStyle(fontSize: 12,
+                          color: AppColors.textHint)),
+                ),
+              ),
             ],
           ),
         ),

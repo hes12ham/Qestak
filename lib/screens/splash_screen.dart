@@ -25,7 +25,7 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
     _controller.forward();
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.roleChoice);
+      if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.customerLogin);
     });
   }
 
