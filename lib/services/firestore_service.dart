@@ -157,6 +157,7 @@ class FirestoreService {
     required int totalInstallments,
     required DateTime startDate,
     String? notes,
+    String? idImagePath,
   }) async {
     final dueDates = _generateDueDates(startDate, totalInstallments);
     final docRef = _db.collection('loans').doc();
@@ -166,6 +167,7 @@ class FirestoreService {
       customerNationalId: customerNationalId, loanAmount: loanAmount,
       installmentValue: installmentValue, totalInstallments: totalInstallments,
       startDate: startDate, dueDates: dueDates, notes: notes,
+      idImagePath: idImagePath,
     );
     await docRef.set(loan.toMap());
     return loan;

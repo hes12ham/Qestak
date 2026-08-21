@@ -60,6 +60,7 @@ class Loan {
   final List<Payment> payments;
   final String status; // active, completed, overdue
   final String? notes;
+  final String? idImagePath; // local path to ID card image
   final DateTime createdAt;
 
   Loan({
@@ -80,6 +81,7 @@ class Loan {
     this.payments = const [],
     this.status = 'active',
     this.notes,
+    this.idImagePath,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -138,6 +140,7 @@ class Loan {
         'payments': payments.map((p) => p.toMap()).toList(),
         'status': status,
         'notes': notes,
+        'idImagePath': idImagePath,
         'createdAt': Timestamp.fromDate(createdAt),
         'customerPhoneSearch': customerPhone.replaceAll(RegExp(r'[^\d]'), ''),
         'customerNationalIdSearch':
@@ -171,6 +174,7 @@ class Loan {
           [],
       status: data['status'] ?? 'active',
       notes: data['notes'],
+      idImagePath: data['idImagePath'],
       createdAt:
           (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -194,6 +198,7 @@ class Loan {
     List<Payment>? payments,
     String? status,
     String? notes,
+    String? idImagePath,
   }) {
     return Loan(
       id: id ?? this.id,
@@ -213,6 +218,7 @@ class Loan {
       payments: payments ?? this.payments,
       status: status ?? this.status,
       notes: notes ?? this.notes,
+      idImagePath: idImagePath ?? this.idImagePath,
       createdAt: createdAt,
     );
   }

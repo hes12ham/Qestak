@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -143,6 +144,24 @@ class _AdminLoanDetailsScreenState extends State<AdminLoanDetailsScreen> {
     );
   }
 
+  void _showFullImage(String path) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: InteractiveViewer(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.file(File(path)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _confirmDelete() {
     final l10n = AppLocalizations.of(context);
     showDialog(
@@ -237,6 +256,41 @@ class _AdminLoanDetailsScreenState extends State<AdminLoanDetailsScreen> {
               ),
             ),
             const SizedBox(height: 14),
+
+            // ID Card Image (if exists)
+            if (_loan.idImagePath != null && File(_loan.idImagePath!).existsSync())
+              Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [BoxShadow(color: AppColors.cardShadow, blurRadius: 8)],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                      child: Row(
+                        children: [
+                          Icon(Icons.badge_rounded, color: AppColors.primary, size: 18),
+                          const SizedBox(width: 8),
+                          Text(l10n.translate('pickIdImage'),
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => _showFullImage(_loan.idImagePath!),
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                        child: Image.file(File(_loan.idImagePath!),
+                            width: double.infinity, height: 180, fit: BoxFit.cover),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             // Progress
             PaymentProgressRing(
