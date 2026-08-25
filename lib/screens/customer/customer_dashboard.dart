@@ -27,6 +27,8 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       if (auth.customerLoans.isNotEmpty) {
         NotificationService.checkOverdueLoans(auth.customerLoans);
         NotificationService.checkUpcomingDues(auth.customerLoans);
+        // Schedule future reminders (work even when app is closed)
+        NotificationService.scheduleAllReminders(auth.customerLoans);
       }
     });
   }
